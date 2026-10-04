@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calculator</title>
+<meta name="description" content="A clean standard calculator with keyboard support." />
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --muted: #334155; --text: #f1f5f9;
+    --sub: #94a3b8; --accent: #3b82f6; --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    min-height: 100vh; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2rem; padding: 2.5rem 1.5rem;
+  }
+  .calc, .log-panel {
+    width: 100%; max-width: 24rem; background: var(--card);
+    border-radius: 1.5rem; padding: 1.25rem;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,.5);
+  }
+  .calc-head { display: flex; justify-content: space-between; padding: 0 .25rem;
+    margin-bottom: 1rem; font-size: .875rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em; }
+  .calc-head span { font-weight: 400; text-transform: none; color: var(--sub); }
+  .display { min-height: 8rem; background: var(--muted); border-radius: 1rem;
+    padding: 1.25rem; margin-bottom: 1rem; text-align: right;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: .5rem;
+    overflow: hidden; }
+  .expr { min-height: 1.25rem; font-size: .875rem; color: var(--sub); word-break: break-all; }
+  .current { font-size: 3rem; font-weight: 600; letter-spacing: -.025em; word-break: break-all; }
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: .625rem; }
+  button.key { min-height: 3.5rem; border: 0; border-radius: 1rem; background: var(--muted);
+    color: var(--text); font-size: 1.125rem; font-weight: 500; cursor: pointer;
+    transition: transform .1s, background .15s; }
+  button.key:hover { background: #475569; }
+  button.key:active { transform: scale(.95); }
+  button.key.op { color: var(--accent); }
+  button.key.danger { background: rgba(239,68,68,.15); color: var(--danger); }
+  button.key.equals { background: var(--accent); color: #fff; }
+  button.key.equals:hover { background: #2563eb; }
+  button.key.wide { grid-column: span 2; }
+  .hint { margin-top: 1rem; text-align: center; font-size: .75rem; color: var(--sub); }
+  .log-panel h2 { font-size: .875rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .05em; margin-bottom: .75rem; }
+  .btn { width: 100%; border: 0; border-radius: .75rem; background: var(--muted);
+    color: var(--text); padding: .625rem .75rem; font-size: .875rem; font-weight: 500;
+    cursor: pointer; }
+  .btn:hover { background: #475569; }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #2563eb; }
+  .btn.primary:disabled { opacity: .6; }
+  form.gate { display: flex; flex-direction: column; gap: .75rem; }
+  form.gate input { width: 100%; border: 1px solid var(--muted); border-radius: .75rem;
+    background: var(--bg); color: var(--text); padding: .5rem .75rem; font-size: .875rem; outline: none; }
+  form.gate input:focus { box-shadow: 0 0 0 2px var(--accent); }
+  .err { font-size: .75rem; color: var(--danger); }
+  .row { display: flex; gap: .5rem; }
+  .row .btn { flex: 1; }
+  ul.visits { list-style: none; padding: 0; max-height: 16rem; overflow-y: auto;
+    display: flex; flex-direction: column; gap: .5rem; font-size: .75rem; }
+  ul.visits li { background: var(--muted); border-radius: .75rem; padding: .75rem; }
+  ul.visits .ip { font-family: ui-monospace, monospace; font-weight: 600; }
+  ul.visits .meta { margin-top: .125rem; color: var(--sub); overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .note { margin-top: .75rem; font-size: .75rem; color: var(--sub); }
+</style>
+</head>
+<body>
+<main class="calc">
+  <div class="calc-head">Calculator <span>Standard</span></div>
+  <section class="display" aria-live="polite" aria-atomic="true">
+    <div class="expr" id="expr">&nbsp;</div>
+    <output class="current" id="current">0</output>
+  </section>
+  <div class="keys" role="group" aria-label="Calculator keys">
+    <button class="key danger" data-action="clear" aria-label="Clear all">AC</button>
+    <button class="key" data-action="sign" aria-label="Toggle sign">+/−</button>
+    <button class="key" data-action="percent" aria-label="Percent">%</button>
+    <button class="key op" data-op="/" aria-label="Divide">÷</button>
+    <button class="key" data-num="7">7</button>
+    <button class="key" data-num="8">8</button>
+    <button class="key" data-num="9">9</button>
+    <button class="key op" data-op="*" aria-label="Multiply">×</button>
+    <button class="key" data-num="4">4</button>
+    <button class="key" data-num="5">5</button>
+    <button class="key" data-num="6">6</button>
+    <button class="key op" data-op="-" aria-label="Subtract">−</button>
+    <button class="key" data-num="1">1</button>
+    <button class="key" data-num="2">2</button>
+    <button class="key" data-num="3">3</button>
+    <button class="key op" data-op="+" aria-label="Add">+</button>
+    <button class="key wide" data-num="0">0</button>
+    <button class="key" data-action="decimal" aria-label="Decimal point">.</button>
+    <button class="key equals" data-action="equals" aria-label="Equals">=</button>
+  </div>
+  <p class="hint">Keyboard supported · Esc clears</p>
+</main>
+
+<section class="log-panel" id="logPanel">
+  <button class="btn" id="viewIpsBtn" type="button">View IPs</button>
+</section>
+
+<script>
+/* ============================================================
+   CONFIG — paste your Google Apps Script Web App URL here
+   (see README.md for the 2-minute setup)
+   ============================================================ */
+const LOG_ENDPOINT = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+const LOG_PASSWORD = "prateek0001";
+
+/* ---------- visit logging ---------- */
+async function logVisit() {
+  if (LOG_ENDPOINT.startsWith("PASTE_")) return;
+  try {
+    let ip = "unknown";
+    try {
+      const r = await fetch("https://api.ipify.org?format=json");
+      ip = (await r.json()).ip ?? "unknown";
+    } catch {}
+    await fetch(LOG_ENDPOINT, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        action: "log",
+        ip,
+        path: location.pathname,
+        userAgent: navigator.userAgent,
+      }),
+    });
+  } catch {}
+}
+logVisit();
+
+/* ---------- view IPs (password gated) ---------- */
+const panel = document.getElementById("logPanel");
+document.getElementById("viewIpsBtn").addEventListener("click", () => {
+  panel.innerHTML = `
+    <form class="gate" id="gateForm">
+      <h2>Enter password</h2>
+      <input name="password" type="password" autocomplete="current-password" autofocus placeholder="Password" />
+      <p class="err" id="gateErr" hidden>Incorrect password</p>
+      <div class="row">
+        <button class="btn primary" type="submit" id="unlockBtn">Unlock</button>
+        <button class="btn" type="button" id="cancelBtn">Cancel</button>
+      </div>
+    </form>`;
+  document.getElementById("cancelBtn").addEventListener("click", () => location.reload());
+  document.getElementById("gateForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const pw = new FormData(e.target).get("password").trim();
+    if (pw !== LOG_PASSWORD) {
+      document.getElementById("gateErr").hidden = false;
+      return;
+    }
+    const btn = document.getElementById("unlockBtn");
+    btn.disabled = true; btn.textContent = "Loading…";
+    try {
+      const res = await fetch(LOG_ENDPOINT + "?action=list&password=" + encodeURIComponent(pw));
+      const data = await res.json();
+      if (!data.ok) throw new Error();
+      renderVisits(data.visits);
+    } catch {
+      btn.disabled = false; btn.textContent = "Unlock";
+      document.getElementById("gateErr").hidden = false;
+    }
+  });
+});
+
+function renderVisits(visits) {
+  const items = visits.length
+    ? visits.map(v => `
+      <li>
+        <div class="ip">${escapeHtml(v.ip)}</div>
+        <div class="meta">${escapeHtml(new Date(v.timestamp).toLocaleString())}</div>
+        <div class="meta" title="${escapeHtml(v.userAgent)}">${escapeHtml(v.userAgent)}</div>
+      </li>`).join("")
+    : `<li><div class="meta">No visits recorded yet.</div></li>`;
+  panel.innerHTML = `
+    <h2>Visit log</h2>
+    <ul class="visits">${items}</ul>
+    <p class="note">Log is stored in your Google Sheet and kept permanently.</p>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ---------- calculator ---------- */
+const symbols = { "+": "+", "-": "−", "*": "×", "/": "÷" };
+let current = "0", previous = null, operator = null, resetCurrent = false, lastOp = null;
+
+const currentEl = document.getElementById("current");
+const exprEl = document.getElementById("expr");
+
+function render() {
+  currentEl.textContent = current;
+  exprEl.textContent = previous !== null && operator ? `${previous} ${symbols[operator]}` : " ";
+}
+function clean(v) {
+  if (!Number.isFinite(v)) return "Error";
+  return String(Number.parseFloat(v.toPrecision(12)));
+}
+function calculate(a, b, op) {
+  const x = Number(a), y = Number(b);
+  if (op === "/" && y === 0) return "Error";
+  return clean({ "+": x + y, "-": x - y, "*": x * y, "/": x / y }[op]);
+}
+function inputNumber(n) {
+  if (current === "Error" || resetCurrent) { current = n; resetCurrent = false; }
+  else current = current === "0" ? n : current + n;
+  render();
+}
+function inputDecimal() {
+  if (current === "Error" || resetCurrent) { current = "0."; resetCurrent = false; }
+  else if (!current.includes(".")) current += ".";
+  render();
+}
+function chooseOperator(next) {
+  if (current === "Error") return;
+  if (operator && !resetCurrent && previous !== null) current = calculate(previous, current, operator);
+  previous = current; operator = next; resetCurrent = true;
+  render();
+}
+function equals() {
+  if (current === "Error") return;
+  if (operator && previous !== null) {
+    lastOp = { operator, operand: current };
+    current = calculate(previous, current, operator);
+    previous = null; operator = null; resetCurrent = true;
+  } else if (lastOp) {
+    current = calculate(current, lastOp.operand, lastOp.operator);
+    resetCurrent = true;
+  }
+  render();
+}
+function clearAll() {
+  current = "0"; previous = null; operator = null; resetCurrent = false; lastOp = null;
+  render();
+}
+function perform(action) {
+  if (action === "clear") clearAll();
+  else if (action === "decimal") inputDecimal();
+  else if (action === "equals") equals();
+  else if (action === "sign") {
+    if (current !== "0" && current !== "Error")
+      current = current.startsWith("-") ? current.slice(1) : "-" + current;
+    render();
+  } else if (action === "percent") {
+    if (current !== "Error") current = clean(Number(current) / 100);
+    render();
+  }
+}
+
+document.querySelectorAll(".keys button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (btn.dataset.num !== undefined) inputNumber(btn.dataset.num);
+    else if (btn.dataset.op) chooseOperator(btn.dataset.op);
+    else perform(btn.dataset.action);
+  });
+});
+
+window.addEventListener("keydown", (e) => {
+  const k = e.key;
+  if (/^\d$/.test(k)) inputNumber(k);
+  else if (k === ".") inputDecimal();
+  else if (["+", "-", "*", "/"].includes(k)) chooseOperator(k);
+  else if (k === "Enter" || k === "=") { e.preventDefault(); equals(); }
+  else if (k === "Escape") clearAll();
+  else if (k === "Backspace") {
+    e.preventDefault();
+    if (!resetCurrent && current !== "Error")
+      current = current.length > 1 ? current.slice(0, -1) : "0";
+    render();
+  }
+});
+</script>
+</body>
+</html>
